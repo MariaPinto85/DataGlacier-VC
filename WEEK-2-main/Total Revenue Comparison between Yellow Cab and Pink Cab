@@ -1,0 +1,20 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load the dataset
+file_path = '/mnt/data/Cleaned Dataset.csv'
+data = pd.read_csv('Cleaned Dataset.csv')
+
+# Total revenue per company
+revenue_per_company = data.groupby('Company')['Price Charged'].sum().reset_index()
+
+# Plotting the revenue comparison between Yellow Cab and Pink Cab
+plt.figure(figsize=(5, 5))
+plt.bar(revenue_per_company['Company'], revenue_per_company['Price Charged'], color=['yellow', 'pink'])
+plt.xlabel('Company')
+plt.ylabel('Total Revenue (Price Charged)')
+plt.title('Total Revenue Comparison between Yellow Cab and Pink Cab')
+plt.show()
+
+# Display the revenue data for clarity
+ print(revenue_per_company)

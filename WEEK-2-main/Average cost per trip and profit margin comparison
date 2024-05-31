@@ -1,0 +1,39 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load the dataset
+file_path = '/mnt/data/Cleaned Dataset.csv'
+data = pd.read_csv('Cleaned Dataset.csv')
+
+# Calculate total trips, total cost, and total revenue for each company
+company_metrics = data.groupby('Company').agg(
+    Total_Trips=('Transaction ID', 'count'),
+    Total_Cost=('Cost of Trip', 'sum'),
+    Total_Revenue=('Price Charged', 'sum')
+).reset_index()
+
+# Calculate average cost per trip
+company_metrics['Average_Cost_Per_Trip'] = company_metrics['Total_Cost'] / company_metrics['Total_Trips']
+
+# Calculate total profit and profit margin
+company_metrics['Total_Profit'] = company_metrics['Total_Revenue'] - company_metrics['Total_Cost']
+company_metrics['Profit_Margin'] = (company_metrics['Total_Profit'] / company_metrics['Total_Revenue']) * 100
+
+# Display the cost efficiency data for clarity
+print(company_metrics)
+
+# Plotting average cost per trip for both companies
+plt.figure(figsize=(10, 6))
+plt.bar(company_metrics['Company'], company_metrics['Average_Cost_Per_Trip'], color=['yellow', 'pink'])
+plt.xlabel('Company')
+plt.ylabel('Average Cost Per Trip')
+plt.title('Average Cost Per Trip Comparison between Yellow Cab and Pink Cab')
+plt.show()
+
+# Plotting profit margin for both companies
+plt.figure(figsize=(10, 6))
+plt.bar(company_metrics['Company'], company_metrics['Profit_Margin'], color=['yellow', 'pink'])
+plt.xlabel('Company')
+plt.ylabel('Profit Margin (%)')
+plt.title('Profit Margin Comparison between Yellow Cab and Pink Cab')
+plt.show()

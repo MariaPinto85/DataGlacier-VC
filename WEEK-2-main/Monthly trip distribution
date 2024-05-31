@@ -1,0 +1,39 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load the dataset
+file_path = '/mnt/data/Cleaned Dataset.csv'
+data = pd.read_csv('Cleaned Dataset.csv')
+
+
+# Convert 'Date of Travel' to datetime
+data['Date of Travel'] = pd.to_datetime(data['Date of Travel'], format='%d/%m/%Y')
+
+# Extract month and year for further analysis
+data['Year'] = data['Date of Travel'].dt.year
+data['Month'] = data['Date of Travel'].dt.month
+
+# Distribution of trips over time (monthly)
+monthly_trips = data.groupby(['Year', 'Month']).size().reset_index(name='Trip Count')
+
+# Distribution of trips over time (daily)
+daily_trips = data.groupby('Date of Travel').size().reset_index(name='Trip Count')
+
+import matplotlib.pyplot as plt
+
+# Plotting monthly trips
+plt.figure(figsize=(12, 6))
+plt.plot(monthly_trips['Year'].astype(str) + '-' + monthly_trips['Month'].astype(str), monthly_trips['Trip Count'])
+plt.xticks(rotation=45)
+plt.xlabel('Year-Month')
+plt.ylabel('Number of Trips')
+plt.title('Monthly Trip Distribution')
+plt.show()
+
+# Plotting daily trips
+plt.figure(figsize=(12, 6))
+plt.plot(daily_trips['Date of Travel'], daily_trips['Trip Count'])
+plt.xlabel('Date')
+plt.ylabel('Number of Trips')
+plt.title('Daily Trip Distribution')
+plt.show()

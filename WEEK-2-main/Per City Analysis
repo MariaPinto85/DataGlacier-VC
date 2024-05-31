@@ -1,0 +1,101 @@
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load the dataset
+file_path = '/mnt/data/Cleaned Dataset.csv'
+data = pd.read_csv('Cleaned Dataset.csv')
+
+# Convert 'Date of Travel' to datetime
+data['Date of Travel'] = pd.to_datetime(data['Date of Travel'], format='%d/%m/%Y')
+
+# Extract month and year for further analysis
+data['Year'] = data['Date of Travel'].dt.year
+data['Month'] = data['Date of Travel'].dt.month
+
+# General overview
+missing_values = data.isnull().sum()
+data_types = data.dtypes
+summary_statistics = data.describe()
+
+# Number of trips per company
+trips_per_company = data['Company'].value_counts().reset_index()
+trips_per_company.columns = ['Company', 'Trip Count']
+
+# Total revenue and cost per company
+revenue_cost_per_company = data.groupby('Company')[['Price Charged', 'Cost of Trip']].sum().reset_index()
+
+# Number of unique users per company
+unique_users_per_company = data.groupby('Company')['Customer ID'].nunique().reset_index()
+unique_users_per_company.columns = ['Company', 'Unique Users']
+
+# Average price charged and cost per trip per company
+average_price_cost_per_company = data.groupby('Company')[['Price Charged', 'Cost of Trip']].mean().reset_index()
+average_price_cost_per_company.columns = ['Company', 'Average Price Charged', 'Average Cost of Trip']
+
+# Merging all the information for company analysis
+company_analysis = trips_per_company.merge(revenue_cost_per_company, on='Company')
+company_analysis = company_analysis.merge(unique_users_per_company, on='Company')
+company_analysis = company_analysis.merge(average_price_cost_per_company, on='Company')
+
+# Number of trips per city
+trips_per_city = data['City'].value_counts().reset_index()
+trips_per_city.columns = ['City', 'Trip Count']
+
+# Total revenue and cost per city
+revenue_cost_per_city = data.groupby('City')[['Price Charged', 'Cost of Trip']].sum().reset_index()
+
+# Number of unique users per city
+unique_users_per_city = data.groupby('City')['Customer ID'].nunique().reset_index()
+unique_users_per_city.columns = ['City', 'Unique Users']
+
+# Average price charged and cost per trip per city
+average_price_cost_per_city = data.groupby('City')[['Price Charged', 'Cost of Trip']].mean().reset_index()
+average_price_cost_per_city.columns = ['City', 'Average Price Charged', 'Average Cost of Trip']
+
+# Merging all the information for city analysis
+city_analysis = trips_per_city.merge(revenue_cost_per_city, on='City')
+city_analysis = city_analysis.merge(unique_users_per_city, on='City')
+city_analysis = city_analysis.merge(average_price_cost_per_city, on='City')
+
+# Plotting City Analysis on bar graphs
+
+# Total Trip Count per City
+plt.figure(figsize=(15, 8))
+plt.bar(city_analysis['City'], city_analysis['Trip Count'], color='skyblue')
+plt.xlabel('City')
+plt.ylabel('Number of Trips')
+plt.title('Number of Trips per City')
+plt.xticks(rotation=90)
+plt.show()
+
+# Total Revenue per City
+plt.figure(figsize=(15, 8))
+plt.bar(city_analysis['City'], city_analysis['Price Charged'], color='lightgreen')
+plt.xlabel('City')
+plt.ylabel('Total Revenue (Price Charged)')
+plt.title('Total Revenue per City')
+plt.xticks(rotation=90)
+plt.show()
+
+# Total Cost per City
+plt.figure(figsize=(15, 8))
+plt.bar(city_analysis['City'], city_analysis['Cost of Trip'], color='salmon')
+plt.xlabel('City')
+plt.ylabel('Total Cost of Trip')
+plt.title('Total Cost per City')
+plt.xticks(rotation=90)
+plt.show()
+
+# Profit per City
+plt.figure(figsize=(15, 8))
+plt.bar(city_analysis['City'], city_analysis['Price Charged'] - city_analysis['Cost of Trip'], color='orange')
+plt.xlabel('City')
+plt.ylabel('Profit')
+plt.title('Profit per City')
+plt.xticks(rotation=90)
+plt.show()
+
+# Save the company and city analysis to csv files
+company_analysis.to_csv('company_analysis.csv', index=False)
+city_analysis.to_csv('city_analysis.csv', index=False)

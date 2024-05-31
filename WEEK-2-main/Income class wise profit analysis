@@ -1,0 +1,73 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load the dataset
+file_path = '/mnt/data/Cleaned Dataset.csv'
+data = pd.read_csv('Cleaned Dataset.csv')
+
+# Convert 'Date of Travel' to datetime
+data['Date of Travel'] = pd.to_datetime(data['Date of Travel'], format='%d/%m/%Y')
+
+# Calculate profit
+data['Profit'] = data['Price Charged'] - data['Cost of Trip']
+
+# Extract year from 'Date of Travel'
+data['Year'] = data['Date of Travel'].dt.year
+
+# Define income classes
+bins = [0, 5000, 10000, 20000, 30000, 40000, 50000]
+labels = ['0-5k', '5k-10k', '10k-20k', '20k-30k', '30k-40k', '40k-50k']
+data['Income Class'] = pd.cut(data['Income (USD/Month)'], bins=bins, labels=labels)
+
+# Group data by Year, Company, and Income Class
+income_class_profit = data.groupby(['Year', 'Company', 'Income Class'])['Profit'].sum().unstack().fillna(0)
+
+# Adjust data for plotting
+income_class_profit = income_class_profit.reset_index().melt(id_vars=['Year', 'Company'], var_name='Income Class', value_name='Profit')
+
+# Plotting the grouped stacked bar chart
+fig, ax = plt.subplots(figsize=(14, 8))
+
+years = income_class_profit['Year'].unique()
+companies = income_class_profit['Company'].unique()
+income_classes = income_class_profit['Income Class'].unique()
+
+bar_width = 0.35
+bar_positions = []
+
+# Define colors for each income class
+colors = ['#ff9999','#66b3ff','#99ff99','#ffcc99', '#c2c2f0', '#ffb3e6']
+
+# Creating bars for each income class
+for i, year in enumerate(years):
+    for j, company in enumerate(companies):
+        bottom = None
+        for k, income_class in enumerate(income_classes):
+            profit = income_class_profit[(income_class_profit['Year'] == year) &
+                                         (income_class_profit['Company'] == company) &
+                                         (income_class_profit['Income Class'] == income_class)]['Profit'].values
+            if len(profit) > 0:
+                profit = profit[0]
+            else:
+                profit = 0
+            bar_positions.append(i * 2 + j)
+            ax.bar(i * 2 + j, profit, width=bar_width, label=income_class if i == 0 and j == 0 else "", bottom=bottom, color=colors[k])
+            if bottom is None:
+                bottom = profit
+            else:
+                bottom += profit
+
+# Set title and labels
+ax.set_title('Income Class-wise Profit Analysis')
+ax.set_xlabel('Year and Company')
+ax.set_ylabel('Profit ($)')
+ax.set_xticks([r + bar_width / 2 for r in range(0, len(years) * 2, 2)])
+ax.set_xticklabels(years)
+ax.legend(title='Income Class')
+
+# Add vertical grid lines for each year
+for i in range(1, len(years)):
+    ax.axvline(x=i * 2 - 0.5, color='gray', linestyle='--')
+
+plt.tight_layout()
+plt.show()

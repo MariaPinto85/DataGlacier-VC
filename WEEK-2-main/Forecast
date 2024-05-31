@@ -1,0 +1,76 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+# Load the dataset
+file_path = '/mnt/data/Cleaned Dataset.csv'
+data = pd.read_csv('Cleaned Dataset.csv')
+
+# Convert 'Date of Travel' to datetime
+data['Date of Travel'] = pd.to_datetime(data['Date of Travel'], format='%d/%m/%Y')
+
+# Calculate profit
+data['Profit'] = data['Price Charged'] - data['Cost of Trip']
+
+# Extract year for further analysis
+data['Year'] = data['Date of Travel'].dt.year
+
+# Group by year and company to calculate total profit
+annual_profit = data.groupby(['Year', 'Company'])['Profit'].sum().reset_index()
+
+# Separate data for Yellow Cab and Pink Cab
+yellow_cab_profit = annual_profit[annual_profit['Company'] == 'Yellow Cab'].set_index('Year')['Profit']
+pink_cab_profit = annual_profit[annual_profit['Company'] == 'Pink Cab'].set_index('Year')['Profit']
+
+# Define a function to fit and forecast using ARIMA
+def forecast_profit(profit_series, steps=1):
+    model = SARIMAX(profit_series, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12))
+    model_fit = model.fit(disp=False)
+    forecast = model_fit.get_forecast(steps=steps)
+    return forecast
+
+# Forecasting profit for Yellow Cab
+yellow_cab_forecast = forecast_profit(yellow_cab_profit, steps=1)
+yellow_cab_forecast_2019 = yellow_cab_forecast.predicted_mean.iloc[0]
+yellow_cab_forecast_ci = yellow_cab_forecast.conf_int().iloc[0]
+
+# Forecasting profit for Pink Cab
+pink_cab_forecast = forecast_profit(pink_cab_profit, steps=1)
+pink_cab_forecast_2019 = pink_cab_forecast.predicted_mean.iloc[0]
+pink_cab_forecast_ci = pink_cab_forecast.conf_int().iloc[0]
+
+# Calculate the loss percentage
+yellow_cab_loss_pct = ((yellow_cab_forecast_2019 - yellow_cab_profit.iloc[-1]) / yellow_cab_profit.iloc[-1]) * 100
+pink_cab_loss_pct = ((pink_cab_forecast_2019 - pink_cab_profit.iloc[-1]) / pink_cab_profit.iloc[-1]) * 100
+
+# Plotting the forecasts along with historical data
+plt.figure(figsize=(14, 8))
+
+# Plot Yellow Cab
+plt.plot(yellow_cab_profit.index, yellow_cab_profit, label='Yellow Cab Actual', color='orange')
+plt.plot([2019], [yellow_cab_forecast_2019], marker='o', markersize=8, color='orange', label='Yellow Cab Forecast')
+plt.fill_between([2019], yellow_cab_forecast_ci[0], yellow_cab_forecast_ci[1], color='orange', alpha=0.3)
+plt.text(2019, yellow_cab_forecast_2019, f'{yellow_cab_forecast_2019:,.0f}', ha='left', va='bottom', fontsize=10, color='black')
+plt.text(2019, yellow_cab_forecast_ci[1], f'Loss in % = {yellow_cab_loss_pct:.2f}', ha='right', va='top', color='gray')
+
+# Plot Pink Cab
+plt.plot(pink_cab_profit.index, pink_cab_profit, label='Pink Cab Actual', color='blue')
+plt.plot([2019], [pink_cab_forecast_2019], marker='o', markersize=8, color='blue', label='Pink Cab Forecast')
+plt.fill_between([2019], pink_cab_forecast_ci[0], pink_cab_forecast_ci[1], color='blue', alpha=0.3)
+plt.text(2019, pink_cab_forecast_2019, f'{pink_cab_forecast_2019:,.0f}', ha='left', va='bottom', fontsize=10, color='black')
+plt.text(2019, pink_cab_forecast_ci[1], f'Loss in % = {pink_cab_loss_pct:.2f}', ha='right', va='top', color='gray')
+
+plt.xlabel('Year')
+plt.ylabel('Profit')
+plt.title('Profit Forecasting for 2019')
+plt.legend()
+plt.show()
+
+# Display the forecasted profits and confidence intervals
+print(f"Yellow Cab Forecasted Profit for 2019: ${yellow_cab_forecast_2019:,.2f}")
+print(f"95% Confidence Interval: (${yellow_cab_forecast_ci[0]:,.2f}, ${yellow_cab_forecast_ci[1]:,.2f})")
+print(f"Loss Percentage: {yellow_cab_loss_pct:.2f}%\n")
+
+print(f"Pink Cab Forecasted Profit for 2019: ${pink_cab_forecast_2019:,.2f}")
+print(f"95% Confidence Interval: (${pink_cab_forecast_ci[0]:,.2f}, ${pink_cab_forecast_ci[1]:,.2f})")
+print(f"Loss Percentage: {pink_cab_loss_pct:.2f}%")

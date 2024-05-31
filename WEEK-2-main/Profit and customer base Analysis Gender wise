@@ -1,0 +1,58 @@
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load the dataset
+file_path = '/mnt/data/Cleaned Dataset.csv'
+data = pd.read_csv('Cleaned Dataset.csv')
+
+# Convert 'Date of Travel' to datetime with a specified format
+data['Date of Travel'] = pd.to_datetime(data['Date of Travel'], format='%d/%m/%Y')
+
+# Calculate profit
+data['Profit'] = data['Price Charged'] - data['Cost of Trip']
+
+# Extract year from 'Date of Travel'
+data['Year'] = data['Date of Travel'].dt.year
+
+# Group data by Company, Gender, and Year
+profit_data = data.groupby(['Company', 'Gender', 'Year'])['Profit'].sum().reset_index()
+customer_data = data.groupby(['Company', 'Gender', 'Year'])['Customer ID'].count().reset_index()
+
+# Normalize the data for percentage calculation
+profit_data['Profit Percentage'] = profit_data.groupby(['Company', 'Year'], group_keys=False)['Profit'].apply(lambda x: 100 * x / float(x.sum()))
+customer_data['Customer Percentage'] = customer_data.groupby(['Company', 'Year'], group_keys=False)['Customer ID'].apply(lambda x: 100 * x / float(x.sum()))
+
+# Plotting the graphs
+fig, axs = plt.subplots(1, 2, figsize=(18, 8))
+
+# Define bar width and positions
+bar_width = 0.2
+years = profit_data['Year'].unique()
+
+# Plot for Gender-wise contribution in profit
+for i, (company, gender) in enumerate(profit_data[['Company', 'Gender']].drop_duplicates().values):
+    subset = profit_data[(profit_data['Company'] == company) & (profit_data['Gender'] == gender)]
+    positions = [x + i * bar_width for x in range(len(years))]
+    axs[0].bar(positions, subset['Profit Percentage'], width=bar_width, label=f'{company} - {gender}')
+axs[0].set_title('Gender-wise Contribution in Profit')
+axs[0].set_xlabel('Year')
+axs[0].set_ylabel('Percentage of Profit Contribution')
+axs[0].set_xticks([x + bar_width for x in range(len(years))])
+axs[0].set_xticklabels(years)
+axs[0].legend()
+
+# Plot for Gender-wise customer base analysis
+for i, (company, gender) in enumerate(customer_data[['Company', 'Gender']].drop_duplicates().values):
+    subset = customer_data[(customer_data['Company'] == company) & (customer_data['Gender'] == gender)]
+    positions = [x + i * bar_width for x in range(len(years))]
+    axs[1].bar(positions, subset['Customer Percentage'], width=bar_width, label=f'{company} - {gender}')
+axs[1].set_title('Gender-wise Customer Base Analysis')
+axs[1].set_xlabel('Year')
+axs[1].set_ylabel('Percentage of Customer Contribution')
+axs[1].set_xticks([x + bar_width for x in range(len(years))])
+axs[1].set_xticklabels(years)
+axs[1].legend()
+
+plt.tight_layout()
+plt.show()

@@ -1,0 +1,52 @@
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the dataset
+file_path = '/mnt/data/Cleaned Dataset.csv'
+df = pd.read_csv('Cleaned Dataset.csv')
+
+# Adjust the column names based on the inspection
+df.columns = df.columns.str.strip()  # Remove any leading/trailing spaces
+
+# Create age groups
+bins = [0, 25, 40, 60, 100]
+labels = ['0-25', '26-40', '41-60', '60+']
+df['Age Group'] = pd.cut(df['Age'], bins=bins, labels=labels, right=False)
+
+# Extract the year from 'Date of Travel'
+df['Year'] = pd.to_datetime(df['Date of Travel'], format='%d/%m/%Y').dt.year
+
+# Calculate Profit as 'Price Charged' - 'Cost of Trip'
+df['Profit'] = df['Price Charged'] - df['Cost of Trip']
+
+# Group by 'Company', 'Year', and 'Age Group' to get the sum of profits
+profit_share = df.groupby(['Company', 'Year', 'Age Group'])['Profit'].sum().unstack(fill_value=0)
+
+# Plotting the data
+fig, ax = plt.subplots(figsize=(12, 8))
+
+# Define custom colors for age groups
+colors = sns.color_palette("Paired", n_colors=4)
+
+profit_share.plot(kind='bar', stacked=True, ax=ax, color=colors)
+
+# Formatting
+plt.title('Profit share by age group')
+plt.xlabel('Company and Year')
+plt.ylabel('Profit')
+plt.legend(title='Age Group')
+plt.xticks(rotation=45)
+
+# Show the profit amount on each segment
+for n, x in enumerate([*profit_share.index]):
+    for (proportion, y_loc) in zip(profit_share.loc[x],
+                                   profit_share.loc[x].cumsum()):
+        if proportion > 0:
+            plt.text(x=n, y=y_loc - proportion/2, s=f'{proportion:.2f}', 
+                     color="white", fontsize=10, ha='center', va='center')
+
+plt.tight_layout()
+plt.show()
+

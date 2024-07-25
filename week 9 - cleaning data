@@ -1,0 +1,167 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import warnings
+warnings.filterwarnings('ignore')
+# Read the CSV file
+df_train = pd.read_csv("Train.csv")
+
+# Display the first few rows of the dataframe
+#print(df_train.info())
+df_train['fecha_dato'] = pd.to_datetime(df_train['fecha_dato'])
+df_train['fecha_alta'] = pd.to_datetime(df_train['fecha_alta'])
+
+df_train['ind_empleado'] = df_train['ind_empleado'].astype('category')
+df_train['sexo'] = df_train['sexo'].astype('category')
+
+# Convert pais_residencia to category
+df_train['pais_residencia'] = df_train['pais_residencia'].astype('category')
+
+# Convert ind_nuevo to integer
+df_train['ind_nuevo'] = df_train['ind_nuevo'].fillna(0).astype('int64')
+
+# Convert ind_nuevo to category
+df_train['ind_nuevo'] = df_train['ind_nuevo'].astype('category')
+
+# Convert ult_fec_cli_1t to datetime
+df_train['ult_fec_cli_1t'] = pd.to_datetime(df_train['ult_fec_cli_1t'], errors='coerce')
+
+# Convert indrel to category
+df_train['indrel'] = df_train['indrel'].astype('category')
+
+# Convert canal_entrada to category
+df_train['canal_entrada'] = df_train['canal_entrada'].astype('category')
+
+# Convert tipodom to category
+df_train['tipodom'] = df_train['tipodom'].astype('category')
+
+# Step 1: Convert non-numeric values to NaN
+df_train['antiguedad'] = pd.to_numeric(df_train['antiguedad'], errors='coerce')
+
+# Drop rows with NaN values in the antiguedad column and convert to int
+df_train = df_train.dropna(subset=['antiguedad'])
+df_train['antiguedad'] = df_train['antiguedad'].astype('int64')
+
+# Verify the changes
+print(df_train['antiguedad'].dtype)
+print(df_train['antiguedad'].isnull().sum())
+
+# Convert to category
+df_train['indrel_1mes'] = df_train['indrel_1mes'].astype('category')
+df_train['tiprel_1mes'] = df_train['tiprel_1mes'].astype('category')
+df_train['indext'] = df_train['indext'].astype('category')
+df_train['conyuemp'] = df_train['conyuemp'].astype('category')
+df_train['indfall'] = df_train['indfall'].astype('category')
+df_train['cod_prov'] = df_train['cod_prov'].astype('category')
+df_train['nomprov'] = df_train['nomprov'].astype('category')
+df_train['ind_actividad_cliente'] = df_train['ind_actividad_cliente'].astype('category')
+df_train['segmento'] = df_train['segmento'].astype('category')
+
+# Convert age to integer
+df_train['age'] = df_train['age'].fillna(0).astype('int64')
+
+# Summary Statistics to ensure data is merged correctly
+print(df_train.info())
+
+# Add 0 to the categories of 'conyuemp'
+df_train['conyuemp'] = df_train['conyuemp'].astype('category')
+df_train['conyuemp'] = df_train['conyuemp'].cat.add_categories([0])
+
+# Substitute NaN values in 'conyuemp' column with 0
+df_train['conyuemp'] = df_train['conyuemp'].fillna(0)
+
+# Verify the changes
+print(df_train['conyuemp'].isnull().sum())  # Should print 0 if all NaN values are filled
+
+# Check the number of rows and columns
+num_rows = df_train.shape[0]
+num_columns = df_train.shape[1]
+print(f"Number of rows: {num_rows}")
+print(f"Number of columns: {num_columns}")
+
+# Remove rows where age is greater than 100
+df_train = df_train[df_train['age'] <= 100]
+
+# Add 'Missing' as a new category
+df_train['canal_entrada'] = df_train['canal_entrada'].astype('category')
+df_train['canal_entrada'] = df_train['canal_entrada'].cat.add_categories(['No information'])
+df_train['canal_entrada'] = df_train['canal_entrada'].fillna('No information')
+
+# Remove the column 'ult_fec_cli_1t' in-place
+df_train.drop(columns=['ult_fec_cli_1t'], inplace=True)
+
+# Verify the changes
+#print(df_train.columns)
+
+# Drop rows with NaN values in the 'sexo' column
+df_train = df_train.dropna(subset=['sexo'])
+
+# Substitute NaN values in 'renta' column with 0 using .loc to avoid SettingWithCopyWarning
+df_train.loc[:, 'renta'] = df_train['renta'].fillna(0)
+
+#get the number of missing data points per column
+missing_values_count = df_train.isnull().sum()
+#look at the number of missing points in the 48 columns
+missing_values_count[0:48]
+
+# Drop rows with NaN values in the 'indrel_1mes' column
+df_train = df_train.dropna(subset=['indrel_1mes'])
+df_train = df_train.dropna(subset=['tiprel_1mes'])
+
+# Remove all rows with any null values
+df_train = df_train.dropna()
+
+# Verify the changes
+print(df_train.isnull().sum())  # Should print 0 for all columns
+# print(df_train.shape)  # Check the shape to see how many rows were dropped
+
+# Function to calculate the number of months between two dates
+def calculate_month_diff(start_date, end_date):
+    return (end_date.year - start_date.year) * 12 + end_date.month - start_date.month
+
+# Apply the function to create the new column
+df_train['months_between'] = df_train.apply(lambda row: calculate_month_diff(row['fecha_alta'], row['fecha_dato']), axis=1)
+
+
+# Handle negative values by setting them to zero
+df_train['antiguedad'] = df_train['antiguedad'].apply(lambda x: 0 if x < 0 else x)
+
+# Display the updated DataFrame
+print(df_train.head())
+
+# Map 'H' to 'Men' and 'V' to 'Women'
+df_train['sexo'] = df_train['sexo'].map({'H': 'Men', 'V': 'Women'})
+
+# Display the updated DataFrame
+print(df_train)
+
+# Handle negative values in 'antiguedad' by setting them to zero
+df_train['antiguedad'] = df_train['antiguedad'].apply(lambda x: 0 if x < 0 else x)
+
+# Ensure 'ind_nuevo' contains only 1 or 0
+df_train['ind_nuevo'] = pd.to_numeric(df_train['ind_nuevo'], errors='coerce')  # Convert to numeric, set errors to NaN
+df_train['ind_nuevo'] = df_train['ind_nuevo'].fillna(0)  # Replace NaN with 0
+df_train['ind_nuevo'] = df_train['ind_nuevo'].apply(lambda x: 1 if x == 1 else 0)  # Ensure only 1 or 0
+
+# Ensure 'indrel_1mes' contains only 1, 2, 3, 4, or 'P'
+valid_values = {'1', '2', '3', '4', 'P'}
+df_train['indrel_1mes'] = df_train['indrel_1mes'].astype(str)  # Convert to string
+df_train['indrel_1mes'] = df_train['indrel_1mes'].apply(lambda x: x if x in valid_values else 'P')
+
+# Print the first 5 and last 5 values of 'indrel_1mes' column
+first_5_values = df_train['indrel_1mes'].head(5)
+last_5_values = df_train['indrel_1mes'].tail(5)
+
+print("First 5 values of 'indrel_1mes':")
+print(first_5_values)
+
+print("\nLast 5 values of 'indrel_1mes':")
+print(last_5_values)
+
+# Specify the filename for the new CSV file
+filename = 'df_train_new.csv'
+
+# Save the DataFrame to a new CSV file
+df_train.to_csv(filename, index=False)
+
+print(f'DataFrame saved to {filename}')
